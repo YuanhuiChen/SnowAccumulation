@@ -12,6 +12,13 @@
 #include <glm/gtc/random.hpp>
 
 
+bool displayDepth = false;
+bool toggleFog = true;
+
+unsigned int meshFogLocation;
+unsigned int passFogLocation;
+unsigned int snowFogLocation;
+
 int width = 1280;
 int height = 680;
 
@@ -65,8 +72,8 @@ int meshElementSize;
 		glm::vec3 lightPosition = vec3(0,10,0);
 		glm::vec3 center = vec3(0,0,0);
 		glm::vec3 up = vec3(0,0,1);
-		
-glm::vec3 eyePosition = glm::vec3(-10, 10,1);
+
+glm::vec3 eyePosition = glm::vec3(-10, 10,10);
 		//glm::vec3 eyePosition = glm::vec3(-5, 10,5);
 //Animation/transformation stuff
 clock_t old;
@@ -80,12 +87,15 @@ GLuint backImage;
 //snow fall
 GLuint snowFallProgram;
 int particlesNumber = 2000;
-	GLuint snowVertexBufferObjID[3];
+GLuint snowVertexBufferObjID[3];
 GLuint snowPositionLocation = 0;
 GLuint pointSizeLocation = 1;
 GLuint fallSpeedLocation = 2;
 GLuint snowTimeLocation;
 GLuint snowImage;
+GLuint snowProjMatrixLocation;
+GLuint snowViewMatrixLocation;
+
 const char *snowAttributionLocations[] = { "vs_position", "pointSize", "fallSpeed"};
 
 //standard glut-based program functions
@@ -124,17 +134,17 @@ void drawPoints()
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 
-	
+
 	glEnable(GL_POINT_SPRITE);
 	glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
-	
+
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, snowImage);
 
 	glTexEnvi(GL_POINT_SPRITE, GL_COORD_REPLACE, 1);
 
 	glBindBuffer(GL_ARRAY_BUFFER, snowVertexBufferObjID[0]);
-	glVertexAttribPointer((GLuint)snowPositionLocation, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribPointer((GLuint)snowPositionLocation, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
 	glBindBuffer(GL_ARRAY_BUFFER, snowVertexBufferObjID[1]);
 	glVertexAttribPointer((GLuint)pointSizeLocation, 1, GL_FLOAT, GL_FALSE, 0, 0);
@@ -143,6 +153,12 @@ void drawPoints()
 	glVertexAttribPointer((GLuint)fallSpeedLocation, 1, GL_FLOAT, GL_FALSE, 0, 0); 
 
 	glUniform1f(snowTimeLocation, globalTime);
+	glUniform1i(snowFogLocation, toggleFog);
+	glm::mat4 pers = glm::perspective(70.0f, static_cast<float>(width) / static_cast<float>(height), 0.1f, 100.0f);
+	glm::mat4 view = glm::lookAt(eyePosition, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+
+	glUniformMatrix4fv(snowProjMatrixLocation, 1, GL_FALSE, &pers[0][0]);
+	glUniformMatrix4fv(snowViewMatrixLocation, 1, GL_FALSE, &view[0][0]);
 
 	glDrawArrays(GL_POINTS, 0,  particlesNumber);
 
@@ -161,11 +177,16 @@ void drawPoints()
 
 void initPoints()
 {
-	
-	float * vertices = new float[particlesNumber * 2];
-	for(int i = 0; i < particlesNumber * 2; i++)
+	glm::vec3 * vertices = new glm::vec3[particlesNumber];
+	//float * vertices = new float[particlesNumber * 2];
+	for(int i = 0; i < particlesNumber ; i++)
 	{
-		vertices[i] = glm::linearRand(-10.0f, 10.0f);
+		vertices[i].x = glm::linearRand(-20.0f, 20.0f);
+		vertices[i].y = glm::linearRand(-20.0f, 20.0f);
+		vertices[i].z = glm::linearRand(-20.0f, 20.0f);;
+		//vertices[i].z = 9;
+		//vertices[i].z = glm::linearRand(0.0f, 5.0f);;
+		//vertices[i].z = glm::linearRand(-5.0f, 10.0f);
 		//std::cout << vertices[i] <<std::endl;
 	}
 
@@ -174,7 +195,7 @@ void initPoints()
 
 	for(int i = 0; i < particlesNumber; i++)
 	{
-		sizes[i] = glm::linearRand(5.0f, 30.0f);
+		sizes[i] = glm::linearRand(2.0f, 20.0f);
 	}
 
 	float * speeds  = new float[particlesNumber];
@@ -189,9 +210,9 @@ void initPoints()
 
 
 	glGenBuffers(3, snowVertexBufferObjID);
-	
+
 	glBindBuffer(GL_ARRAY_BUFFER, snowVertexBufferObjID[0]);
-	glBufferData(GL_ARRAY_BUFFER, particlesNumber * 2 * sizeof(float), vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, particlesNumber * sizeof(glm::vec3), vertices, GL_STATIC_DRAW);
 
 
 
@@ -216,12 +237,15 @@ GLuint initSnowShader(const char *vertexShaderPath, const char *fragmentShaderPa
 	GLint location;
 
 	glUseProgram(program);
-	
+
 	if ((location = glGetUniformLocation(program, "u_image")) != -1)
 	{
 		glUniform1i(location, 0);
 	}
-
+	
+	snowProjMatrixLocation = glGetUniformLocation(program, "u_projMatrix");
+	snowViewMatrixLocation = glGetUniformLocation(program, "u_modelViewMatrix");
+	snowFogLocation  = glGetUniformLocation(program, "u_fog");
 	snowTimeLocation = glGetUniformLocation(program, "globalTime");
 	return program;
 }
@@ -280,15 +304,18 @@ void display() {
 	rotation += 150 * (static_cast<float>(newTime - old) / static_cast<float>(CLOCKS_PER_SEC));
 	glm::mat4 modelView = glm::mat4(1.0);
 	glUseProgram(renderMeshProgram);
-	
+
 	//drawBackground();
 	//glUseProgram(renderMeshProgram);
 	drawDepthMap(modelView);
+	if(!displayDepth)
+	{
 	drawBackground();
 	drawMesh(modelView);
 	//
 	//drawSquare();
 	drawPoints();
+	}
 	glutSwapBuffers();
 	old = newTime;
 }
@@ -296,7 +323,7 @@ void display() {
 void init() {
 	//Create the VBOs and IBO we'll be using to render images in OpenGL
 
-	
+
 	//Everybody does this
 	glClearColor(0, 0, 0, 1);
 	glEnable(GL_DEPTH_TEST);
@@ -312,7 +339,7 @@ void init() {
 	initBackgroundTexture();
 	resize(width, height);
 	old = clock();
-	
+
 }
 
 
@@ -328,13 +355,14 @@ GLuint initMeshShader(const char *vertexShaderPath, const char *fragmentShaderPa
 	lightPosLocationMesh = glGetUniformLocation(program, "u_lightPos");
 	timeLocationMesh = glGetUniformLocation(program, "u_time");
 	growMapLocationMesh = glGetUniformLocation(program, "u_growMap");
+	meshFogLocation = glGetUniformLocation(program, "u_fog");
 	return program;
 }
 
 GLuint initDepthShader(const char *vertexShaderPath, const char *fragmentShaderPath)
 {
 	GLuint program = Utility::createProgram(vertexShaderPath, fragmentShaderPath, depthAttributeLocations, 1);
-	
+
 	projMatrixLocationDepth = glGetUniformLocation(program, "u_projMatrix");	
 	modelMatrixLocationDepth = glGetUniformLocation(program, "u_modelMatrix");
    
@@ -400,10 +428,15 @@ void initDepthFrameBuffer()
 }
 void drawDepthMap(mat4 modelView)
 {
+
+	if(displayDepth)
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	else
+		glBindFramebuffer(GL_FRAMEBUFFER, depthRenderFrame);
 	
 	glUseProgram(depthMapProgram);
-	glBindFramebuffer(GL_FRAMEBUFFER, depthRenderFrame);
-	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	
+	//
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	
 
 	glEnableVertexAttribArray(meshPositionLocation);
@@ -420,7 +453,7 @@ void drawDepthMap(mat4 modelView)
 		glUniformMatrix4fv(modelMatrixLocationDepth, 1, GL_FALSE, &modelView[0][0]);   
 		glm::mat4 orth = glm::ortho(-size, size, -size, size, -size, 2*size);
 		glm::mat4 view = glm::lookAt(lightPosition, center,up);
-		
+
 
 		worldToMapMatrix = glm::mat4(0.5, 0.0, 0.0, 0.0, 
 			0.0, 0.5, 0.0, 0.0,
@@ -437,7 +470,7 @@ void drawDepthMap(mat4 modelView)
 		GL_UNSIGNED_SHORT, 
 		(void*)0          
 		);
-	
+
 	glDisableVertexAttribArray(meshPositionLocation);
 
 
@@ -517,6 +550,12 @@ void keypress(unsigned char key, int x, int y) {
 		cleanup();
 		exit(0);
 		break;
+	case 'd':
+		displayDepth = !displayDepth;
+		break;
+	case 'f':
+		toggleFog = !toggleFog;
+		break;
 	}
 
 	glutPostRedisplay();
@@ -524,13 +563,13 @@ void keypress(unsigned char key, int x, int y) {
 
 void drawMesh(mat4 modelView)
 {
-	
+
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	
 	glClear(GL_DEPTH_BUFFER_BIT);	
 	glUseProgram(renderMeshProgram);
 
-	
+
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, depthMap);
 	glUniform1i(depthMapLocationMesh, 0);
@@ -553,6 +592,7 @@ void drawMesh(mat4 modelView)
 		(void*)0            // array buffer offset
 		);
 
+
 	glEnableVertexAttribArray(meshNormalLocation);
 	glBindBuffer(GL_ARRAY_BUFFER,  meshVertexBufferObjID[1]);
 	glVertexAttribPointer(
@@ -574,11 +614,19 @@ void drawMesh(mat4 modelView)
 		0,                                // stride
 		(void*)0                          // array buffer offset
 		);
-	
+	glUniform1i(meshFogLocation, toggleFog);
 	glUniform1f(timeLocationMesh, globalTime);
 	glUniformMatrix4fv(toMapMatrixLocationMesh, 1, GL_FALSE, &worldToMapMatrix[0][0]);
 	glUniform4f(lightPosLocationMesh, lightPosition.x,lightPosition.y,lightPosition.z, 0.0f);   
 		glUniformMatrix4fv(modelMatrixLocationMesh, 1, GL_FALSE, &modelView[0][0]);
+		
+		glm::mat4 pers = glm::perspective(70.0f, static_cast<float>(width) / static_cast<float>(height), 0.1f, 100.0f);
+	glm::mat4 view = glm::lookAt(eyePosition, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+
+	//set the projection matrix here, it only needs to be changed if the screen is resized otherwise it can stay the same
+	glUniformMatrix4fv(persMatrixLocationMesh, 1, GL_FALSE, &pers[0][0]);
+	glUniformMatrix4fv(viewMatrixLocationMesh, 1, GL_FALSE, &view[0][0]);
+
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,  meshVertexBufferObjID[3]);
 	glDrawElements(
 		GL_TRIANGLES,      
@@ -586,8 +634,8 @@ void drawMesh(mat4 modelView)
 		GL_UNSIGNED_SHORT, 
 		(void*)0          
 		);
-	
-	
+
+
 	glDisableVertexAttribArray(meshPositionLocation);
 	glDisableVertexAttribArray(meshUVLocation);
 	glDisableVertexAttribArray(meshNormalLocation);
@@ -599,6 +647,7 @@ void drawMesh(mat4 modelView)
 void resize(int width, int height) {
 	//set the viewport, more boilerplate
 	glViewport(0, 0, width, height);
+	
 	glm::mat4 pers = glm::perspective(70.0f, static_cast<float>(width) / static_cast<float>(height), 0.1f, 100.0f);
 	glm::mat4 view = glm::lookAt(eyePosition, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 
@@ -615,9 +664,9 @@ GLuint initPassShader(const char *vertexShaderPath, const char *fragmentShaderPa
 	GLuint program = Utility::createProgram(vertexShaderPath, fragmentShaderPath, squareAttributeLocations, 2);
 
 	glUseProgram(program);
-	
-	imageLocationSquare = glGetUniformLocation(program, "u_image");
 
+	imageLocationSquare = glGetUniformLocation(program, "u_image");
+	passFogLocation= glGetUniformLocation(program, "u_fog");
 
 	return program;
 }
@@ -651,17 +700,17 @@ void initSquare()
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 
-	
+
 	glGenBuffers(3, squareVertexBufferObjID);
-	
+
 	glBindBuffer(GL_ARRAY_BUFFER, squareVertexBufferObjID[0]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-	
-	
+
+
 	glBindBuffer(GL_ARRAY_BUFFER, squareVertexBufferObjID[1]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(texcoords), texcoords, GL_STATIC_DRAW);
-	
-	
+
+
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, squareVertexBufferObjID[2]);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 }
@@ -688,7 +737,7 @@ void drawBackground()
 	glBindBuffer(GL_ARRAY_BUFFER, squareVertexBufferObjID[1]);
 	glVertexAttribPointer((GLuint)1, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
-
+	glUniform1i(passFogLocation, toggleFog);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, squareVertexBufferObjID[2]);
 	// VAO, shader program, and texture already bound
 	glDrawElements(GL_TRIANGLES, 6,  GL_UNSIGNED_SHORT, 0);
@@ -726,5 +775,5 @@ void drawSquare()
 
 	glDisableVertexAttribArray(0);
 	glDisableVertexAttribArray(1);
-	
+
 }

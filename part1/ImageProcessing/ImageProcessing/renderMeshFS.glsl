@@ -39,13 +39,15 @@ in vec3 fs_normal;
 in vec3 fs_light_vector;
 in vec2 fs_uv;
 in vec4 mapCoord;
+in vec4 fogPosition;
 uniform float u_time;
 uniform sampler2D u_depthMap;
 uniform sampler2D u_textureMap;
+uniform bool u_fog;
 
 out vec4 depth;
 layout (location = 0) out vec4 color;
-
+in vec3 diffuseLightDir;
 
 float random(vec3 seed, int i){
 	vec4 seed4 = vec4(seed,i);
@@ -55,11 +57,11 @@ float random(vec3 seed, int i){
 
 void main() {
     //base colors for materials
-    vec4 diffuseColor = texture2D(u_textureMap, fs_uv);
-  //  vec4 diffuseColor = vec4(1.0,1.0,1.0,1.0);
+    //vec4 diffuseColor = texture2D(u_textureMap, fs_uv);
+    vec4 diffuseColor = vec4(0.2,0.2,0.2,1.0);
 	float seed = mapCoord.x *mapCoord.y ;
 
-	float normalDotLight = dot(normalize(fs_normal), normalize(fs_light_vector));
+	float normalDotLight = dot(normalize(fs_normal), normalize(diffuseLightDir));
 
 
     float diffuseTerm = clamp(normalDotLight, 0.0, 1.0);
@@ -98,6 +100,18 @@ void main() {
 		color = dot(normalize(fs_normal + 2.0 * nosieNormal), normalize(fs_light_vector)) * vec4(0.9, 0.9, 0.9, 1.0) ;
 		color = mix(color, diffuseColor, 1- max(inclindCoeff, 0.0));
 	}
-	//color = vec4(t, t,t,1.0);
+
+   
+	//add fog
+	if(u_fog)
+	{
+	float depth = length(fogPosition);
+	float LOG2 = 1.442695;
+	float density = 0.015;
+	float fogFactor = exp2(-density * density * depth * depth * LOG2);
+	fogFactor = clamp(fogFactor, 0.0, 1.0);
+	vec4 fogColor = vec4(0.8, 0.9, 0.5, 1.0);
+	color = mix(fogColor, color, fogFactor);
+	}
 
 }
