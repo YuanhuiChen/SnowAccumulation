@@ -40,6 +40,12 @@
     <None Include="renderMeshFS.glsl">
       <Filter>shaders</Filter>
     </None>
+    <None Include="snowfallVS.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="snowfallFS.glsl">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="objLoader">

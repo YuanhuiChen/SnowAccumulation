@@ -18,6 +18,8 @@
     <None Include="passthroughVS.glsl" />
     <None Include="renderMeshFS.glsl" />
     <None Include="renderMeshVS.glsl" />
+    <None Include="snowfallFS.glsl" />
+    <None Include="snowfallVS.glsl" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\objLoader\obj.cpp" />
@@ -69,7 +71,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\shared32\glew\include;..\..\shared32\freeglut\include;..\Shader_Loading;..\SOIL;..\objLoader;..\..\shared32\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\shared32\glew\include;..\..\shared32\freeglut\include;..\SOIL;..\objLoader;..\..\shared32\glm;..\..\shared32;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -98,6 +100,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>..\..\shared32\glew\include;..\..\shared32\glm;..\..\shared32\freeglut\include;..\SOIL;..\objLoader;..\..\shared32;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -105,6 +108,8 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalLibraryDirectories>..\..\shared32\freeglut\lib;..\..\shared32\glew\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

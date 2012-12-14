@@ -9,4 +9,5 @@ void main(void)
 {
 	//gl_FragColor = texture2D(u_image, v_Texcoords);
 	fragColor = texture2D(u_image, v_Texcoords);
+	
 }

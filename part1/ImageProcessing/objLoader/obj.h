@@ -4,7 +4,7 @@
 #ifndef OBJ
 #define OBJ
 
-#include "glm/glm.hpp"
+#include <glm/glm.hpp>
 #include <string>
 #include <vector>
 
@@ -26,7 +26,7 @@ private:
 	float* vbo;
 	float* nbo;
 	float* cbo;
-	unsigned short * ibo;
+	int* ibo;
 	float* boundingbox;
 	float top;
 	glm::vec3 defaultColor;
@@ -60,7 +60,7 @@ public:
 	float* getVBO();
 	float* getCBO();
 	float* getNBO();
-	unsigned short * getIBO();
+	int* getIBO();
 	int getVBOsize();
 	int getNBOsize();
 	int getIBOsize();

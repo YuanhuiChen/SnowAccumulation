@@ -41,7 +41,7 @@ void obj::buildVBOs(){
 	vector<float> NBOvec;
 	vector<int> IBOvec;
 	int index = 0;
-	bool genNormals = false;
+	bool genNormals = true;
 	if(faces.size()!=facenormals.size()){
 		genNormals = true;
 	}
@@ -84,7 +84,7 @@ void obj::buildVBOs(){
 	
 	vbo = new float[VBOvec.size()];
 	nbo = new float[NBOvec.size()];
-	ibo = new unsigned short[IBOvec.size()];
+	ibo = new int[IBOvec.size()];
 	vbosize = (int)VBOvec.size();
 	nbosize = (int)NBOvec.size();
 	ibosize = (int)IBOvec.size();
@@ -95,7 +95,7 @@ void obj::buildVBOs(){
 		nbo[i] = NBOvec[i];
 	}
 	for(int i=0; i<IBOvec.size(); i++){
-		ibo[i] = unsigned short (IBOvec[i]);
+		ibo[i] = IBOvec[i];
 	}
 	setColor(glm::vec3(.4,.4,.4));
 }
@@ -309,7 +309,7 @@ float* obj::getNBO(){
 	return nbo;
 }
 
-unsigned short * obj::getIBO(){
+int* obj::getIBO(){
 	return ibo;
 }
 
