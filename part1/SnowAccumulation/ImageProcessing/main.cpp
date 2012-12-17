@@ -24,8 +24,7 @@ GLuint snowFogLocation;
 int width = 1280;
 int height = 680;
 
-
-
+// vbos
 GLuint meshVertexBufferObjID[4];
 GLuint squareVertexBufferObjID[3];
 
@@ -34,7 +33,8 @@ GLuint meshPositionLocation = 0;
 GLuint meshUVLocation = 2;
 GLuint meshNormalLocation = 1;
 
-//uniforms
+
+//mesh
 GLuint modelMatrixLocationMesh;
 GLuint persMatrixLocationMesh;
 GLuint viewMatrixLocationMesh;
@@ -45,45 +45,47 @@ GLuint lightPosLocationMesh;
 GLuint timeLocationMesh;
 GLuint growMapLocationMesh; 
 
+//depth map
+GLuint projMatrixLocationDepth;
+GLuint modelMatrixLocationDepth;
+//background render
+GLuint imageLocationSquare;
+//init shaders
 const char *meshAttributeLocations[] = {"vs_position", "vs_normal", "vs_uv"};
 const char *depthAttributeLocations[] = {"vs_position"};
 const char *squareAttributeLocations[] = {"Position", "TexCoords"};
+const char *snowAttributionLocations[] = { "vs_position", "pointSize", "fallSpeed"};
 
-GLuint projMatrixLocationDepth;
-GLuint modelMatrixLocationDepth;
-
-
-GLuint imageLocationSquare;
+//render programs
+GLuint passThroughProgram;
 GLuint renderMeshProgram;
 GLuint depthMapProgram;
-GLuint passThroughProgram;
 
-
+//images
 GLuint depthMap;
 GLuint textureMap;
-GLuint depthRenderFrame;
 GLuint depthBuffer;
-
+GLuint backImage;
+//frame buffer
+GLuint depthRenderFrame;
 mat4 worldToMapMatrix;
 int meshElementSize;
 
 
+//depth map 
+float size = 10.0;	
+glm::vec3 lightPosition = vec3(0,10,0);
+glm::vec3 center = vec3(0,0,0);
+glm::vec3 up = vec3(0,0,1);
 
-        float size = 10.0;	
-		//glm::vec3 lightPosition = vec3(0.5,2,2);
-		glm::vec3 lightPosition = vec3(0,10,0);
-		glm::vec3 center = vec3(0,0,0);
-		glm::vec3 up = vec3(0,0,1);
-
+//render mesh
 glm::vec3 eyePosition = glm::vec3(-10, 10,10);
-		//glm::vec3 eyePosition = glm::vec3(-5, 10,5);
 //Animation/transformation stuff
 clock_t old;
 float rotation = 0.0f;
-//animation stuff
 float globalTime = 0.0;
 
-GLuint backImage;
+
 
 
 //snow fall
@@ -98,7 +100,7 @@ GLuint snowImage;
 GLuint snowProjMatrixLocation;
 GLuint snowViewMatrixLocation;
 
-const char *snowAttributionLocations[] = { "vs_position", "pointSize", "fallSpeed"};
+
 
 //standard glut-based program functions
 void init(void);
@@ -124,6 +126,7 @@ void drawDepthMap(mat4 modelView);
 void initPoints();
 void drawPoints();
 
+//draw snowflakes
 void drawPoints()
 {
 	glUseProgram(snowFallProgram);
@@ -134,7 +137,6 @@ void drawPoints()
 	glEnable(GL_BLEND);
 	glDepthMask(GL_FALSE);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 
 
 	glEnable(GL_POINT_SPRITE);
@@ -176,20 +178,16 @@ void drawPoints()
 }
 
 
-
+//initialize snowflakes positions, sizes, and speeds
 void initPoints()
 {
 	glm::vec3 * vertices = new glm::vec3[particlesNumber];
-	//float * vertices = new float[particlesNumber * 2];
+
 	for(int i = 0; i < particlesNumber ; i++)
 	{
 		vertices[i].x = glm::linearRand(-20.0f, 20.0f);
 		vertices[i].y = glm::linearRand(-20.0f, 20.0f);
 		vertices[i].z = glm::linearRand(-20.0f, 20.0f);;
-		//vertices[i].z = 9;
-		//vertices[i].z = glm::linearRand(0.0f, 5.0f);;
-		//vertices[i].z = glm::linearRand(-5.0f, 10.0f);
-		//std::cout << vertices[i] <<std::endl;
 	}
 
    
@@ -232,6 +230,7 @@ void initPoints()
 	delete [] sizes;
 	delete [] speeds;
 }
+
 //snowfall
 GLuint initSnowShader(const char *vertexShaderPath, const char *fragmentShaderPath)
 {
@@ -323,10 +322,7 @@ void display() {
 }
 
 void init() {
-	//Create the VBOs and IBO we'll be using to render images in OpenGL
 
-
-	//Everybody does this
 	glClearColor(0, 0, 0, 1);
 	glEnable(GL_DEPTH_TEST);
 	glClearDepth(1.0);
@@ -374,6 +370,7 @@ GLuint initDepthShader(const char *vertexShaderPath, const char *fragmentShaderP
 
 void initDepthFrameBuffer()
 {
+	//create texture buffer for frame
 	glGenTextures(1, &depthMap);
 	glBindTexture(GL_TEXTURE_2D, depthMap);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -431,6 +428,7 @@ void initDepthFrameBuffer()
 void drawDepthMap(mat4 modelView)
 {
 
+	//draw depth map to framebuffer
 	if(displayDepth)
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	else
@@ -438,7 +436,7 @@ void drawDepthMap(mat4 modelView)
 	
 	glUseProgram(depthMapProgram);
 	
-	//
+	
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	
 
 	glEnableVertexAttribArray(meshPositionLocation);
@@ -481,6 +479,7 @@ void drawDepthMap(mat4 modelView)
 
 void initMesh()
 {
+	//load mesh vertices
 	glGenBuffers(1, & meshVertexBufferObjID[0]);
 	glGenBuffers(1, & meshVertexBufferObjID[1]);
 	glGenBuffers(1, & meshVertexBufferObjID[2]);
@@ -488,9 +487,8 @@ void initMesh()
 
 	obj * mesh =  new obj();
 
-	//objLoader* loader = new objLoader("house.obj", mesh);
 	objLoader* loader = new objLoader("scenes.obj", mesh);
-	//objLoader* loader = new objLoader("suzanne.obj", mesh);
+
 	mesh->buildVBOs();
 	delete loader;
 
@@ -586,35 +584,35 @@ void drawMesh(mat4 modelView)
 	glEnableVertexAttribArray(meshPositionLocation);
 	glBindBuffer(GL_ARRAY_BUFFER,  meshVertexBufferObjID[0]);
 	glVertexAttribPointer(
-		meshPositionLocation,                  // attribute
-		3,                  // size
-		GL_FLOAT,           // type
-		GL_FALSE,           // normalized?
-		0,                  // stride
-		(void*)0            // array buffer offset
+		meshPositionLocation,                
+		3,                  
+		GL_FLOAT,           
+		GL_FALSE,           
+		0,                  
+		(void*)0            
 		);
 
 
 	glEnableVertexAttribArray(meshNormalLocation);
 	glBindBuffer(GL_ARRAY_BUFFER,  meshVertexBufferObjID[1]);
 	glVertexAttribPointer(
-		meshNormalLocation,                                // attribute
-		3,                                // size
-		GL_FLOAT,                         // type
-		GL_FALSE,                         // normalized?
-		0,                                // stride
-		(void*)0                          // array buffer offset
+		meshNormalLocation,                             
+		3,                                
+		GL_FLOAT,                        
+		GL_FALSE,                       
+		0,                                
+		(void*)0                          
 		);
 
 	glEnableVertexAttribArray(meshUVLocation);
 	glBindBuffer(GL_ARRAY_BUFFER, meshVertexBufferObjID[2]);
 	glVertexAttribPointer(
-		meshUVLocation,                                // attribute
-		4,                                // size
-		GL_FLOAT,                         // type
-		GL_FALSE,                         // normalized?
-		0,                                // stride
-		(void*)0                          // array buffer offset
+		meshUVLocation,                              
+		4,                                
+		GL_FLOAT,                         
+		GL_FALSE,                        
+		0,                               
+		(void*)0                        
 		);
 	glUniform1i(meshFogLocation, toggleFog);
 	glUniform1f(timeLocationMesh, globalTime);
@@ -647,13 +645,11 @@ void drawMesh(mat4 modelView)
 
 
 void resize(int width, int height) {
-	//set the viewport, more boilerplate
+
 	glViewport(0, 0, width, height);
 	
 	glm::mat4 pers = glm::perspective(70.0f, static_cast<float>(width) / static_cast<float>(height), 0.1f, 100.0f);
 	glm::mat4 view = glm::lookAt(eyePosition, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
-
-	//set the projection matrix here, it only needs to be changed if the screen is resized otherwise it can stay the same
 	glUniformMatrix4fv(persMatrixLocationMesh, 1, GL_FALSE, &pers[0][0]);
 	glUniformMatrix4fv(viewMatrixLocationMesh, 1, GL_FALSE, &view[0][0]);
 
@@ -692,10 +688,7 @@ void initSquare()
         1.0f, 0.0f
 
     };
-	/*        0.0f, 0.0f,
-        1.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 1.0f*/
+
 	GLushort indices[] = { 0, 1, 3, 3, 1, 2 };
 
 	GLuint vao;

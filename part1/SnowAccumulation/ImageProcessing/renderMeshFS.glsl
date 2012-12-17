@@ -24,42 +24,40 @@ float random(vec3 seed, int i){
 }
 
 void main() {
-    //base colors for materials
-    //vec4 diffuseColor = texture2D(u_textureMap, fs_uv);
+  
     vec4 diffuseColor = vec4(0.2,0.2,0.2,1.0);
-	float seed = mapCoord.x *mapCoord.y ;
+
 
 	float normalDotLight = dot(normalize(fs_normal), normalize(diffuseLightDir));
 
-
     float diffuseTerm = clamp(normalDotLight, 0.0, 1.0);
-    
- 
-
 	float inclindCoeff =  dot(normalize(fs_normal), normalize(fs_light_vector));
 
 	float limit = 1.0 - u_time * 0.001;
 
 	float exposed = texture2D(u_depthMap, mapCoord.xy).z;
 	
+	//generate a random number t
 	float t = random(vec3(mapCoord.x * mapCoord.y ,mapCoord.x * mapCoord.y, mapCoord.x * mapCoord.y), 1 );
 
-	
+	//noise normal for snow shading
 	vec3 nosieNormal = vec3(t, t ,t);
 
 	diffuseColor = diffuseColor * diffuseTerm   + vec4(0.2, 0.2, 0.2, 1.0);
 
 	if( inclindCoeff < 0.2 || exposed < mapCoord.z - 0.005 || t < limit ||u_time < 100.0)
 	{
+		//if points are not exposed to sky
 		color = diffuseColor;
 	}
 	else
 	{
+		//points are exposed to sky
 		color = dot(normalize(fs_normal + 2.0 * nosieNormal), normalize(fs_light_vector)) * vec4(0.9, 0.9, 0.9, 1.0) ;
 		color = mix(color, diffuseColor, 1- max(inclindCoeff, 0.0));
 	}
 
-   
+  
 	//add fog
 	if(u_fog)
 	{
